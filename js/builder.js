@@ -26,19 +26,20 @@ Builder=(function(){
      prevY:false,
      activeFunction:false
     },
-    handlers,
+    handlers={},
     redrawTimeout,
     $controls;
 
   handlers.move=function(x,y){
-      state.data.x+=x;
-      state.data.y+=y;
+      console.log(x,y);
+      state.data.x-= -x;
+      state.data.y-= -y;
   };
   handlers.scale=function(x,y){
-      state.scale+=y;
+      state.scale-= -y;
   };
   handlers.rotate=function(x){
-      state.rotate+=x;
+      state.rotate-= -x;
   };
   
 
@@ -46,7 +47,7 @@ Builder=(function(){
     config=$.extend(config,conf);
     
     
-    $controls=$('<div></div>');
+    $controls=$('<div></div>').hide().appendTo('body');
     $('<div></div>').text('move').appendTo($controls);
     $('<div></div>').text('rotate').appendTo($controls);
     $('<div></div>').text('scale').appendTo($controls);
@@ -56,7 +57,7 @@ Builder=(function(){
         loadData();
         $(document).on('mousemove.handler1',handleMouseMove);
         });
-    $controls.on('mouseup','div',function(){
+    $(document).on('mouseup',function(){
         mouse.activeFunction=false;
         $(document).off('mousemove.handler1');
         });
@@ -69,25 +70,33 @@ Builder=(function(){
   }
   
   function showControls(where){
-    $controls.offset(where.offset());
+    $controls.offset(where.offset()).show();
   }
   
   
   function loadData(){
+    state.data=state.$node[0].dataset;
+    //add defaults
+    
+    /*  
     state.data.x=state.$node.attr('data-x') || defaults.x;   
     state.data.y=state.$node.attr('data-y') || defaults.y;   
     state.data.scale=state.$node.attr('data-scale') || defaults.scale;   
     state.data.rotate=state.$node.attr('data-rotate') || defaults.rotate;   
+    */
   }
   
   function redraw(){
     clearTimeout(redrawTimeout);
     redrawTimeout=setTimeout(function(){
-        state.$node.attr('data-x',state.data.x);   
+        state.$node[0].dataset=state.data;
+        /*
         state.$node.attr('data-y',state.data.y);
         state.$node.attr('data-scale',state.data.scale);   
         state.$node.attr('data-rotate',state.data.rotate);
+        */
         window['--drawSlideGlobalHandler'](state.$node[0]);
+        console.log(['redrawn',state.$node[0]]);
     },200);
   }
   
