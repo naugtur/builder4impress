@@ -31,9 +31,9 @@ Builder=(function(){
     $controls;
 
   handlers.move=function(x,y){
-      console.log(x,y);
-      state.data.x-= -x;
-      state.data.y-= -y;
+      console.log(x,state.data.x);
+      state.data.x= ~~(state.data.x)+x*10;
+      state.data.y= ~~(state.data.y)+y*10;
   };
   handlers.scale=function(x,y){
       state.scale-= -y;
@@ -47,14 +47,17 @@ Builder=(function(){
     config=$.extend(config,conf);
     
     
-    $controls=$('<div></div>').hide().appendTo('body');
-    $('<div></div>').text('move').appendTo($controls);
-    $('<div></div>').text('rotate').appendTo($controls);
-    $('<div></div>').text('scale').appendTo($controls);
+    $controls=$('<div></div>').hide();
     
-    $controls.on('mousedown','div',function(){
-        mouse.activeFunction=handlers[$(this).text()];
+    $('<div></div>').text('M').data('func','move').appendTo($controls);
+    $('<div></div>').text('R').data('func','rotate').appendTo($controls);
+    $('<div></div>').text('S').data('func','scale').appendTo($controls);
+    
+    $controls.appendTo('body').on('mousedown','div',function(e){
+        mouse.activeFunction=handlers[$(this).data('func')];
         loadData();
+        mouse.prevX=e.pageX;
+        mouse.prevY=e.pageY;
         $(document).on('mousemove.handler1',handleMouseMove);
         });
     $(document).on('mouseup',function(){
@@ -63,44 +66,56 @@ Builder=(function(){
         });
     
     $('body').on('mouseenter','.step',function(){
-      //show controls
-      state.$node=$(this);
-      showControls(state.$node);
+        if(!mouse.activeFunction){
+        //show controls
+        state.$node=$(this);
+        showControls(state.$node);
+        }
     });
   }
   
   function showControls(where){
     $controls.offset(where.offset()).show();
+    //$controls.prependTo(where).show();
   }
   
   
   function loadData(){
-    state.data=state.$node[0].dataset;
+      console.log('load',state.$node[0].dataset.x);
+    //state.data=state.$node[0].dataset;
     //add defaults
     
-    /*  
-    state.data.x=state.$node.attr('data-x') || defaults.x;   
-    state.data.y=state.$node.attr('data-y') || defaults.y;   
-    state.data.scale=state.$node.attr('data-scale') || defaults.scale;   
-    state.data.rotate=state.$node.attr('data-rotate') || defaults.rotate;   
-    */
+    
+    state.data.x=state.$node[0].dataset.x || defaults.x;   
+    state.data.y=state.$node[0].dataset.y || defaults.y;   
+    state.data.scale=state.$node[0].dataset.scale || defaults.scale;   
+    state.data.rotate=state.$node[0].dataset.rotate || defaults.rotate;   
+    
   }
   
   function redraw(){
     clearTimeout(redrawTimeout);
     redrawTimeout=setTimeout(function(){
-        state.$node[0].dataset=state.data;
-        /*
-        state.$node.attr('data-y',state.data.y);
-        state.$node.attr('data-scale',state.data.scale);   
-        state.$node.attr('data-rotate',state.data.rotate);
-        */
-        window['--drawSlideGlobalHandler'](state.$node[0]);
-        console.log(['redrawn',state.$node[0]]);
+        //state.$node[0].dataset=state.data;
+        
+        state.$node[0].dataset.scale=state.data.scale;
+        state.$node[0].dataset.rotate=state.data.rotate;
+        state.$node[0].dataset.x=state.data.x;
+        state.$node[0].dataset.y=state.data.y;
+        /**/
+        console.log(state.data,state.$node[0].dataset,state.$node[0].dataset===state.data);
+        
+        config.redrawFunction(state.$node[0]);
+        showControls();
+        //console.log(['redrawn',state.$node[0].dataset]);
     },200);
   }
   
   function handleMouseMove(e){
+      e.preventDefault();
+      e.stopPropagation();
+      
+      
     var x=e.pageX-mouse.prevX,
         y=e.pageY-mouse.prevY;
         
@@ -110,6 +125,8 @@ Builder=(function(){
         mouse.activeFunction(x,y);
         redraw();
     }
+    
+    return false;
   }
   
   return {
