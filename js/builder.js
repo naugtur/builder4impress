@@ -87,14 +87,13 @@ Builder=(function(){
         //this doesnt seem to work. I'll have to update impress to a version that has API already
         $overview.trigger('click');
     */
-    alert('y');
     
   }
   
   function showControls($where){
     var pos=$where.offset();
       
-    $controls.offset({top:pos.top,left:pos.left}).show();
+    $controls.offset({top:pos.top+1,left:pos.left+1}).show();
     //$controls.prependTo(where).show();
   }
   
