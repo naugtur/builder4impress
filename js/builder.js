@@ -10,9 +10,9 @@ Builder=(function(){
         }
       },
     config={
-      rotateStep:3,
-      scaleStep:1,
-      moveStep:50,
+      rotateStep:1,
+      scaleStep:0.1,
+      moveStep:10,
       redrawFunction:false
       },
     defaults={
@@ -28,37 +28,45 @@ Builder=(function(){
     },
     handlers={},
     redrawTimeout,
-    $controls;
+    $controls,$overview;
 
   handlers.move=function(x,y){
       console.log(x,state.data.x);
-      state.data.x= ~~(state.data.x)+x*10;
-      state.data.y= ~~(state.data.y)+y*10;
+      state.data.x= ~~(state.data.x)+x*config.moveStep;
+      state.data.y= ~~(state.data.y)+y*config.moveStep;
   };
   handlers.scale=function(x,y){
-      state.scale-= -y;
+      state.data.scale-= -y * config.scaleStep;
   };
   handlers.rotate=function(x){
-      state.rotate-= -x;
+      console.log(state.rotate);
+      state.data.rotate-= -x*config.rotateStep;
   };
   
 
   function init(conf){
     config=$.extend(config,conf);
     
-    
-    $controls=$('<div></div>').hide();
+    $controls=$('<div></div>').hide().css({
+        padding:'5px',
+        background: '#222',
+        color: '#fff',
+        width: '40px',
+        'text-align': 'center'
+        });
     
     $('<div></div>').text('M').data('func','move').appendTo($controls);
     $('<div></div>').text('R').data('func','rotate').appendTo($controls);
     $('<div></div>').text('S').data('func','scale').appendTo($controls);
     
     $controls.appendTo('body').on('mousedown','div',function(e){
+        e.preventDefault();
         mouse.activeFunction=handlers[$(this).data('func')];
         loadData();
         mouse.prevX=e.pageX;
         mouse.prevY=e.pageY;
         $(document).on('mousemove.handler1',handleMouseMove);
+        return false;
         });
     $(document).on('mouseup',function(){
         mouse.activeFunction=false;
@@ -72,10 +80,21 @@ Builder=(function(){
         showControls(state.$node);
         }
     });
+    
+    /*
+    $overview=$('<div></div>').attr({id:'builderOverAll','class':'step','data-x':"3000", 'data-y':"1500", 'data-scale':"10"}).prependTo('#impress');
+    config.redrawFunction($overview[0]);
+        //this doesnt seem to work. I'll have to update impress to a version that has API already
+        $overview.trigger('click');
+    */
+    alert('y');
+    
   }
   
-  function showControls(where){
-    $controls.offset(where.offset()).show();
+  function showControls($where){
+    var pos=$where.offset();
+      
+    $controls.offset({top:pos.top,left:pos.left}).show();
     //$controls.prependTo(where).show();
   }
   
@@ -106,9 +125,9 @@ Builder=(function(){
         console.log(state.data,state.$node[0].dataset,state.$node[0].dataset===state.data);
         
         config.redrawFunction(state.$node[0]);
-        showControls();
+        showControls(state.$node);
         //console.log(['redrawn',state.$node[0].dataset]);
-    },200);
+    },50);
   }
   
   function handleMouseMove(e){
