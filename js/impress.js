@@ -237,6 +237,11 @@
             scale: 1 / parseFloat(step.scale)
         };
         
+        //zzz
+        if(window['--omgWhatAHack']) { 
+            window['--omgWhatAHack'](step.scale);
+        }
+        
         // check if the transition is zooming in or not
         var zoomin = target.scale >= current.scale;
         

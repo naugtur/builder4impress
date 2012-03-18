@@ -12,7 +12,7 @@ Builder=(function(){
     config={
       rotateStep:1,
       scaleStep:0.1,
-      moveStep:10,
+      visualScaling:10,
       redrawFunction:false
       },
     defaults={
@@ -28,24 +28,32 @@ Builder=(function(){
     },
     handlers={},
     redrawTimeout,
-    $controls,$overview;
+    $controls,$overview,$impress;
 
   handlers.move=function(x,y){
       console.log(x,state.data.x);
-      state.data.x= ~~(state.data.x)+x*config.moveStep;
-      state.data.y= ~~(state.data.y)+y*config.moveStep;
+      state.data.x= ~~(state.data.x)+x*config.visualScaling;
+      state.data.y= ~~(state.data.y)+y*config.visualScaling;
   };
-  handlers.scale=function(x,y){
-      state.data.scale-= -y * config.scaleStep;
+  handlers.scale=function(x){
+      state.data.scale-= -x * config.scaleStep*config.visualScaling/10;
   };
   handlers.rotate=function(x){
       console.log(state.rotate);
       state.data.rotate-= -x*config.rotateStep;
   };
   
+  //hackity hacky hack hack
+  window['--omgWhatAHack']=function(x){
+      config.visualScaling=x;
+      alert(x);
+      }
+  
 
   function init(conf){
     config=$.extend(config,conf);
+    
+    $impress=$('#impress');
     
     $controls=$('<div></div>').hide().css({
         padding:'5px',
@@ -59,6 +67,20 @@ Builder=(function(){
     $('<div></div>').text('R').data('func','rotate').appendTo($controls);
     $('<div></div>').text('S').data('func','scale').appendTo($controls);
     
+    $('<span></span>').text('E').appendTo($controls).click(function() {
+        var $t = $(this);
+        if(state.editing){
+            state.editing=false;
+            state.$node.html($t.parent().find('textarea').val());
+            $t.parent().find('textarea').remove();
+        }else{
+            state.edititng=true;
+            $t.after($('<textarea>').val(state.$node.html()));
+        }
+    });
+    
+    var showTimer;
+    
     $controls.appendTo('body').on('mousedown','div',function(e){
         e.preventDefault();
         mouse.activeFunction=handlers[$(this).data('func')];
@@ -67,6 +89,8 @@ Builder=(function(){
         mouse.prevY=e.pageY;
         $(document).on('mousemove.handler1',handleMouseMove);
         return false;
+        }).on('mouseenter',function(){
+            clearTimeout(showTimer);
         });
     $(document).on('mouseup',function(){
         mouse.activeFunction=false;
@@ -74,11 +98,18 @@ Builder=(function(){
         });
     
     $('body').on('mouseenter','.step',function(){
-        if(!mouse.activeFunction){
-        //show controls
-        state.$node=$(this);
-        showControls(state.$node);
-        }
+        var $t=$(this);
+        showTimer=setTimeout(function(){
+            if(!mouse.activeFunction){
+            //show controls
+            state.$node=$t;
+            showControls(state.$node);
+            }
+        },1000);
+        $t.data('showTimer',showTimer);
+    }).on('mouseleave','.step',function(){
+        //not showing when not staying
+        clearTimeout($(this).data('showTimer'));
     });
     
     /*
@@ -92,9 +123,7 @@ Builder=(function(){
   
   function showControls($where){
     var pos=$where.offset();
-      
-    $controls.offset({top:pos.top+1,left:pos.left+1}).show();
-    //$controls.prependTo(where).show();
+    $controls.offset({top:pos.top+100/config.visualScaling,left:pos.left+100/config.visualScaling}).show();
   }
   
   
