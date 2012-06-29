@@ -328,6 +328,11 @@
             });
         };
         
+        var newStep = function ( el ) {
+            initStep(el);
+            steps.push(el);
+            }
+        
         // `init` API function that initializes (and runs) the presentation.
         var init = function () {
             if (initialized) { return; }
@@ -654,6 +659,7 @@
             next: next,
             prev: prev,
             initStep: initStep,
+            newStep:newStep,
             setTransformationCallback:setTransformationCallback
         });
 

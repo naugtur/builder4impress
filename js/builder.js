@@ -33,9 +33,11 @@ Builder=(function(){
   $menu,$controls,$impress,$overview;
 
   handlers.move=function(x,y){
-    console.log(x,state.data.x);
-    state.data.x= ~~(state.data.x)+x*config.visualScaling;
-    state.data.y= ~~(state.data.y)+y*config.visualScaling;
+    
+    var v=fixVector(x,y);
+
+    state.data.x = (state.data.x)? (state.data.x)+v.x : v.x;
+    state.data.y = (state.data.y)? (state.data.y)+v.y : v.y;
   };
   handlers.scale=function(x){
     state.data.scale-= -x * config.scaleStep*config.visualScaling/10;
@@ -58,6 +60,8 @@ Builder=(function(){
         config.visualScaling=x.scale;
         console.log(x.scale);
       //TODO: implement rotation handling for move
+        config.rotation=~~(x.rotate.z);
+        console.log('rotate',x.rotate.z);
       //I don't see why I should need translation right now, but who knows...
       })
     }
@@ -70,7 +74,9 @@ Builder=(function(){
     $('<div></div>').addClass('builder-bt bt-overview').appendTo($menu).text('Overview').on('click',function(){
       config['goto']('overview');
     });
-    $('<div></div>').addClass('builder-bt bt-download').appendTo($menu).text('Save file').on('click',downloadResults);
+    $('<div></div>').addClass('builder-bt bt-download').appendTo($menu).text('Get file').on('click',downloadResults);
+    $('<div></div>').addClass('builder-bt bt-download').appendTo($menu).text('style.css').on('click',downloadStyle);
+    
     
     $menu.appendTo('body');
     
@@ -82,6 +88,7 @@ Builder=(function(){
     $('<div></div>').addClass('bt-scale').attr('title','Scale').data('func','scale').appendTo($controls);
     
     $('<span></span>').addClass('builder-bt').text('Edit').appendTo($controls).click(editContents);
+    $('<span></span>').addClass('builder-bt').text('Wrap').appendTo($controls).click(wrapContents);
     
     var showTimer;
     
@@ -109,22 +116,22 @@ Builder=(function(){
           state.$node=$t;
           showControls(state.$node);
         }
-      },1000);
+      },500);
       $t.data('showTimer',showTimer);
     }).on('mouseleave','.step',function(){
       //not showing when not staying
       clearTimeout($(this).data('showTimer'));
     });
     
- 
+    $(window).on('beforeunload',function(){ return 'All changes will be lost'; });
     
-    // jump to the overview slide to make some room to look around
-    config['goto']('overview');
+    config['goto']('start');
+    
     
   }
   
   var sequence = (function(){
-    var s=0;
+    var s=2;
     return function(){
       return s++;
     }
@@ -134,11 +141,28 @@ Builder=(function(){
     //query slide id
     var id,$step;
     id='builderAutoSlide'+sequence();
-    $step=$('<div></div>').addClass('step builder-justcreated').html('<h1>This is a new step. <br> Care to enter some text?</h1>');
+    $step=$('<div></div>').addClass('step builder-justcreated').html('<h1>This is a new step. </h1> How about some contents?');
     $step[0].id=id;
     $step[0].dataset.scale=3;
-    $step.insertBefore($overview);
-    config.redrawFunction($step[0]);
+    $step.insertAfter($('.step:last')); //not too performant, but future proof
+    config.creationFunction($step[0]);
+    // jump to the overview slide to make some room to look around
+    config['goto']('overview');
+  }
+  
+  
+  function downloadStyle(){
+    var uriContent,content,$doc;
+    
+    var BlobBuilder = (function(w) {
+      return w.BlobBuilder || w.WebKitBlobBuilder || w.MozBlobBuilder;
+    })(window);
+    $.get('style.css', function (content) {
+      var bb = new BlobBuilder;
+      bb.append(content);
+      saveAs(bb.getBlob("application/css;charset=utf-8"), "style.css");
+    });
+   
   }
   
   function downloadResults(){
@@ -148,10 +172,16 @@ Builder=(function(){
       return w.BlobBuilder || w.WebKitBlobBuilder || w.MozBlobBuilder;
     })(window);
     $doc=$(document.documentElement).clone();
+    //remove all scripting
     $doc.find('script').remove();
+    //remove all current transforms
     $doc.find('.step, body, #impress, #impress>div').removeAttr('style');
+    //remove gui
     $doc.find('.builder-controls, .builder-main').remove();
-    $doc.find('body').removeAttr('class')[0].innerHTML+='<script src="https://raw.github.com/bartaz/impress.js/master/js/impress.js"></script><script>impress().init()</script>';
+    //put overview at the end
+    $doc.find('#overview').appendTo($doc.find('#impress'));
+    //add impress.js simple init
+    $doc.find('body').attr('class','impress-not-supported')[0].innerHTML+='<script src="https://raw.github.com/bartaz/impress.js/master/js/impress.js"></script><script>impress().init()</script>';
     content=$doc[0].outerHTML;
     //remove stuff
     var bb = new BlobBuilder;
@@ -178,11 +208,19 @@ Builder=(function(){
     }
   }
   
+  function wrapContents() {
+    state.$node.toggleClass('slide');
+  }
+  
   function showControls($where){
-    var pos=$where.offset();
+    var top,left,pos=$where.offset();
+    //not going out the edges (at least one way)
+    top=(pos.top>0)? pos.top+(100/config.visualScaling) : 0;
+    left=(pos.left>0)? pos.left+(100/config.visualScaling) : 0;
+    
     $controls.show().offset({
-      top:pos.top+(100/config.visualScaling),
-      left:pos.left+(100/config.visualScaling)
+      top:top,
+      left:left
     });
   }
   
@@ -193,10 +231,10 @@ Builder=(function(){
     //add defaults
     
     
-    state.data.x=state.$node[0].dataset.x || defaults.x;   
-    state.data.y=state.$node[0].dataset.y || defaults.y;   
-    state.data.scale=state.$node[0].dataset.scale || defaults.scale;   
-    state.data.rotate=state.$node[0].dataset.rotate || defaults.rotate;   
+    state.data.x=parseFloat(state.$node[0].dataset.x) || defaults.x;   
+    state.data.y=parseFloat(state.$node[0].dataset.y) || defaults.y;   
+    state.data.scale=parseFloat(state.$node[0].dataset.scale) || defaults.scale;   
+    state.data.rotate=parseFloat(state.$node[0].dataset.rotate) || defaults.rotate;   
     
   }
   
@@ -216,6 +254,17 @@ Builder=(function(){
       showControls(state.$node);
     //console.log(['redrawn',state.$node[0].dataset]);
     },20);
+  }
+  
+  function fixVector(x,y){
+    var result={x:0,y:0},
+      angle=(config.rotation/180)*Math.PI,
+      cs=Math.cos(angle),
+      sn=Math.sin(angle);
+
+    result.x = (x*cs - y*sn) * config.visualScaling;
+    result.y = (x*sn + y*cs) * config.visualScaling;
+    return result;
   }
   
   function handleMouseMove(e){
