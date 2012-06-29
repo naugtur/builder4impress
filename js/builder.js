@@ -160,7 +160,7 @@ Builder=(function(){
     $.get('style.css', function (content) {
       var bb = new BlobBuilder;
       bb.append(content);
-      saveAs(bb.getBlob("application/css;charset=utf-8"), "style.css");
+      saveAs(bb.getBlob("text/css;charset=utf-8"), "style.css");
     });
    
   }
@@ -186,7 +186,7 @@ Builder=(function(){
     //remove stuff
     var bb = new BlobBuilder;
     bb.append(content);
-    saveAs(bb.getBlob("application/xhtml+xml;charset=utf-8"), "presentation.html");
+    saveAs(bb.getBlob("text/html;charset=utf-8"), "presentation.html");
       
   }
   
