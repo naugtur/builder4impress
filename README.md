@@ -22,6 +22,7 @@ Plans and issues [notes to self, but tips are appreciated ;)]
 ---------
 
 Make it follow the mouse more closely (there are some fractions lost in vector rotation or it's just an issue of responsiveness)
+
 Add:
  - rearrange steps
  - delete steps
